@@ -111,16 +111,22 @@ extension OptionalParentProperty: AnyCodableProperty {
         var container = encoder.singleValueContainer()
         if case .some(.some(let parent)) = self.value { // require truly non-nil so we don't mis-encode when value has been manually cleared
             try container.encode(parent)
-        } else {
+        } else if let id = self.id {
             try container.encode([
-                "id": self.id
+                "id": id
             ])
+        } else {
+            try container.encodeNil()
         }
     }
 
     public func decode(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: SomeCodingKey.self)
-        try self.$id.decode(from: container.superDecoder(forKey: .init(stringValue: "id")))
+        if try decoder.singleValueContainer().decodeNil() {
+            self.id = nil
+        } else {
+            let container = try decoder.container(keyedBy: SomeCodingKey.self)
+            try self.$id.decode(from: container.superDecoder(forKey: .init(stringValue: "id")))
+        }
     }
 }
 
